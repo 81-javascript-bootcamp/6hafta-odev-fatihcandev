@@ -1,9 +1,9 @@
-[![Edit pomodoro_app](https://codesandbox.io/static/img/play-codesandbox.svg)](https://codesandbox.io/s/github/81-javascript-bootcamp/5hafta-odev-fatihcandev/tree/main/?fontsize=14&hidenavigation=1&theme=dark)
+[![Edit pomodoro_app](https://codesandbox.io/static/img/play-codesandbox.svg)](https://codesandbox.io/s/github/81-javascript-bootcamp/6hafta-odev-fatihcandev/tree/main/?fontsize=14&hidenavigation=1&theme=dark)
 
 # Pomodoro App - Odev
 
 # 🌐 Live 
-https://b9yzo.sse.codesandbox.io/
+https://yx3q9.sse.codesandbox.io/
 
 1. Eklenen bir task yanina carpi ikonu koyularak basildiginda silinebilmeli.
 
