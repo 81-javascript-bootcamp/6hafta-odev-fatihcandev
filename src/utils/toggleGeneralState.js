@@ -12,5 +12,9 @@ export const toggleGeneralState = ({
     toggleDisabledStateOfAllActionButtons(tableElement);
   }
   toggleDisabledState(addTaskFormBtn);
-  toggleLoadingState(pressedBtn, !isFinished, isFinished ? '' : 'white');
+  toggleLoadingState({
+    $element: pressedBtn,
+    shouldShow: !isFinished,
+    spinningWheelColor: isFinished ? '' : 'white',
+  });
 };

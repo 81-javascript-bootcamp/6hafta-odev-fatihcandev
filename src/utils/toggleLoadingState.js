@@ -1,11 +1,11 @@
 import { renderSpinningWheel } from './renderSpinningWheel';
 
-export const toggleLoadingState = (
+export const toggleLoadingState = ({
   $element,
   shouldShow,
   spinningWheelColor,
-  spinningWheelSize
-) => {
+  spinningWheelSize,
+}) => {
   if (shouldShow) {
     $element.classList.add('loading');
     const spinningWheel = renderSpinningWheel(
