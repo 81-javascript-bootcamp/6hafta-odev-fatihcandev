@@ -16,12 +16,12 @@ import {
   incrementTimerCycle,
   resetTimerCycle,
 } from './utils/timerCycle';
-import { getActionButton } from './utils/getActionButton';
 import { renderTaskRow } from './utils/renderTaskRow';
 import { getTaskRow } from './utils/getTaskRow';
 import { toggleGeneralState } from './utils/toggleGeneralState';
 import { toggleDisabledState } from './utils/toggleDisabledState';
 import { crossOutTask } from './utils/crossOutTask';
+import { showSuccessToast, showErrorToast } from './utils/toast';
 
 class PomodoroApp {
   constructor(options) {
@@ -81,15 +81,19 @@ class PomodoroApp {
   }
 
   handleCreateTask(task) {
-    createTask(task).then((newTask) => {
-      this.createTaskRow(newTask);
-      this.bindActionButtonEvents(newTask.id);
-      toggleGeneralState({
-        addTaskFormBtn: this.$addTaskFormBtn,
-        pressedBtn: this.$addTaskFormBtn,
-        isFinished: true,
+    createTask(task)
+      .then((newTask) => {
+        this.createTaskRow(newTask);
+        toggleGeneralState({
+          addTaskFormBtn: this.$addTaskFormBtn,
+          pressedBtn: this.$addTaskFormBtn,
+          isFinished: true,
+        });
+        showSuccessToast('The task has been created successfully!');
+      })
+      .catch((error) => {
+        showErrorToast(error);
       });
-    });
   }
 
   bindActionButtonEvents() {
@@ -120,22 +124,29 @@ class PomodoroApp {
   }
 
   handleRemoveTask(taskId) {
-    deleteTask(taskId).then((deletedTask) => {
-      const { id } = deletedTask;
-      const $deleteButton = this.$tableTbody.querySelector(
-        `#delete-task-btn-${id}`
-      );
-      const rowToDelete = this.$tableTbody.querySelector(`tr[data-id="${id}"]`);
-      rowToDelete?.remove();
-      if ($deleteButton) {
-        toggleGeneralState({
-          addTaskFormBtn: this.$addTaskFormBtn,
-          pressedBtn: $deleteButton,
-          tableElement: this.$tableTbody,
-          isFinished: true,
-        });
-      }
-    });
+    deleteTask(taskId)
+      .then((deletedTask) => {
+        const { id } = deletedTask;
+        const $deleteButton = this.$tableTbody.querySelector(
+          `#delete-task-btn-${id}`
+        );
+        const rowToDelete = this.$tableTbody.querySelector(
+          `tr[data-id="${id}"]`
+        );
+        rowToDelete?.remove();
+        if ($deleteButton) {
+          toggleGeneralState({
+            addTaskFormBtn: this.$addTaskFormBtn,
+            pressedBtn: $deleteButton,
+            tableElement: this.$tableTbody,
+            isFinished: true,
+          });
+          showSuccessToast('The task has been deleted successfully!');
+        }
+      })
+      .catch((error) => {
+        showErrorToast(error);
+      });
   }
 
   handleStartWorkingOnTask(taskId) {
@@ -145,24 +156,29 @@ class PomodoroApp {
   }
 
   handleCompleteTask(taskId) {
-    getTask(taskId).then((taskToComplete) => {
-      completeTask(taskToComplete).then((completedTask) => {
-        const { id } = completedTask;
-        const $completeButton = this.$tableTbody.querySelector(
-          `#complete-task-btn-${id}`
-        );
-        const $taskRow = getTaskRow(this.$tableTbody, id);
-        crossOutTask($taskRow);
-        if ($completeButton) {
-          toggleGeneralState({
-            addTaskFormBtn: this.$addTaskFormBtn,
-            pressedBtn: $completeButton,
-            tableElement: this.$tableTbody,
-            isFinished: true,
-          });
-        }
+    getTask(taskId)
+      .then((taskToComplete) => {
+        completeTask(taskToComplete).then((completedTask) => {
+          const { id } = completedTask;
+          const $completeButton = this.$tableTbody.querySelector(
+            `#complete-task-btn-${id}`
+          );
+          const $taskRow = getTaskRow(this.$tableTbody, id);
+          crossOutTask($taskRow);
+          if ($completeButton) {
+            toggleGeneralState({
+              addTaskFormBtn: this.$addTaskFormBtn,
+              pressedBtn: $completeButton,
+              tableElement: this.$tableTbody,
+              isFinished: true,
+            });
+            showSuccessToast('The task has been completed successfully!');
+          }
+        });
+      })
+      .catch((error) => {
+        showErrorToast(error);
       });
-    });
   }
 
   getNextTimerType() {
