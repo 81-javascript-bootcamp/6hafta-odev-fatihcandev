@@ -1,132 +1,296 @@
-import { getDataFromApi, addTaskToApi } from './data';
-import { POMODORO_BREAK, POMODORO_WORK } from './constans';
-import { getNow, addMinutes, getTimeRemaining } from './helpers/date';
+import {
+  POMODORO_LONG_BREAK_TIME,
+  POMODORO_SHORT_BREAK_TIME,
+  POMODORO_WORK_TIME,
+} from './constants';
+import {
+  getTasks,
+  createTask,
+  deleteTask,
+  completeTask,
+  getTask,
+} from './utils/api';
+import { getRemainingDate, setMinutes } from './utils/date';
+import {
+  getTimerCycle,
+  incrementTimerCycle,
+  resetTimerCycle,
+} from './utils/timerCycle';
+import { renderTaskRow } from './utils/renderTaskRow';
+import { getTaskRow } from './utils/getTaskRow';
+import { toggleGeneralState } from './utils/toggleGeneralState';
+import { toggleDisabledState } from './utils/toggleDisabledState';
+import { crossOutTask } from './utils/crossOutTask';
+import { showSuccessToast, showErrorToast } from './utils/toast';
 
 class PomodoroApp {
   constructor(options) {
-    let {
+    const {
+      tableSelector,
       tableTbodySelector,
       taskFormSelector,
-      startButtonSelector,
-      timerSelector,
-      pauseButtonSelector,
+      timerElSelector,
+      startBtnSelector,
+      pauseBtnSelector,
+      resetBtnSelector,
     } = options;
-    this.data = [];
-    this.$tableTbody = document.querySelector(tableTbodySelector);
-    this.$taskForm = document.querySelector(taskFormSelector);
+    this.$tableEl = document.getElementById(tableSelector);
+    this.$tableTbody = document.getElementById(tableTbodySelector);
+    this.$taskForm = document.getElementById(taskFormSelector);
     this.$taskFormInput = this.$taskForm.querySelector('input');
-    this.$startButton = document.querySelector(startButtonSelector);
-    this.$pauseButton = document.querySelector(pauseButtonSelector);
-    this.$timerEl = document.querySelector(timerSelector);
+    this.$addTaskFormBtn = this.$taskForm.querySelector('button');
+    this.$startBtn = document.getElementById(startBtnSelector);
+    this.$pauseBtn = document.getElementById(pauseBtnSelector);
+    this.$resetBtn = document.getElementById(resetBtnSelector);
+    this.$timerEl = document.getElementById(timerElSelector);
     this.currentInterval = null;
     this.currentRemaining = null;
+    this.timerType = null;
     this.currentTask = null;
-    this.breakInterval = null;
   }
 
-  addTask(task) {
-    addTaskToApi(task)
-      .then((data) => data.json())
-      .then((newTask) => {
-        this.data = [...this.data, newTask];
-        this.addTaskToTable(newTask);
+  fillTaskTable() {
+    getTasks().then((currentTasks) => {
+      currentTasks.forEach((task) => {
+        const { id, completed } = task;
+        this.createTaskRow(task);
+        if (completed) {
+          const $taskRow = getTaskRow(this.$tableTbody, id);
+          crossOutTask($taskRow);
+        }
       });
+      this.bindActionButtonEvents();
+    });
   }
 
-  addTaskToTable(task, index) {
-    const $newTaskEl = document.createElement('tr');
-    $newTaskEl.setAttribute('data-taskId', `task${task.id}`);
-    $newTaskEl.classList.add('task');
-    $newTaskEl.innerHTML = `<th scope="row">${task.id}</th><td>${task.title}</td>`;
-    this.$tableTbody.appendChild($newTaskEl);
-    this.$taskFormInput.value = '';
+  createTaskRow(task) {
+    this.$tableTbody.innerHTML += renderTaskRow(task);
   }
 
   handleAddTask() {
-    this.$taskForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const task = { title: this.$taskFormInput.value };
-      this.addTask(task);
-    });
-  }
-
-  fillTasksTable() {
-    getDataFromApi().then((currentTasks) => {
-      this.data = currentTasks;
-      currentTasks.forEach((task, index) => {
-        this.addTaskToTable(task, index + 1);
+    this.$taskForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      toggleGeneralState({
+        addTaskFormBtn: this.$addTaskFormBtn,
+        pressedBtn: this.$addTaskFormBtn,
       });
+      const task = { title: this.$taskFormInput.value, completed: false };
+      this.handleCreateTask(task);
+      this.clearInputValue();
     });
   }
 
-  initializeTimer(endTime) {
-    this.currentInterval = setInterval(() => {
-      const remainingTime = getTimeRemaining(endTime);
-      const { total, minutes, seconds } = remainingTime;
-      this.currentRemaining = total;
-      this.$timerEl.innerHTML = minutes + ':' + seconds;
-      if (total <= 0) {
-        clearInterval(this.currentInterval);
-        this.currentTask.completed = true;
-        const now = getNow();
-        const breakEndDate = addMinutes(now, POMODORO_BREAK);
-        this.breakInterval = setInterval(() => {
-          const remainingBreakTime = getTimeRemaining(breakEndDate);
-          const { total, minutes, seconds } = remainingBreakTime;
-          this.$timerEl.innerHTML =
-            'Chill: ' +
-            remainingBreakTime.minutes +
-            ':' +
-            remainingBreakTime.seconds;
-          if (remainingBreakTime.total <= 0) {
-            clearInterval(this.breakInterval);
-            this.createNewTimer();
+  handleCreateTask(task) {
+    createTask(task)
+      .then((newTask) => {
+        this.createTaskRow(newTask);
+        toggleGeneralState({
+          addTaskFormBtn: this.$addTaskFormBtn,
+          pressedBtn: this.$addTaskFormBtn,
+          isFinished: true,
+        });
+        showSuccessToast('The task has been created successfully!');
+      })
+      .catch((error) => {
+        showErrorToast(error);
+      });
+  }
+
+  bindActionButtonEvents() {
+    this.$tableTbody.addEventListener('click', (event) => {
+      const clickedElement = event.target.closest('button');
+      const taskId = clickedElement?.getAttribute('data-id');
+      const buttonId = clickedElement?.id;
+      if (clickedElement) {
+        if (buttonId === `delete-task-btn-${taskId}`) {
+          toggleGeneralState({
+            addTaskFormBtn: this.$addTaskFormBtn,
+            pressedBtn: clickedElement,
+            tableElement: this.$tableTbody,
+          });
+          this.handleRemoveTask(taskId);
+        } else if (buttonId === `start-task-btn-${taskId}`) {
+          this.handleStartWorkingOnTask(taskId);
+        } else if (buttonId === `complete-task-btn-${taskId}`) {
+          toggleGeneralState({
+            addTaskFormBtn: this.$addTaskFormBtn,
+            pressedBtn: clickedElement,
+            tableElement: this.$tableTbody,
+          });
+          this.handleCompleteTask(taskId);
+        }
+      }
+    });
+  }
+
+  handleRemoveTask(taskId) {
+    deleteTask(taskId)
+      .then((deletedTask) => {
+        const { id } = deletedTask;
+        const $deleteButton = this.$tableTbody.querySelector(
+          `#delete-task-btn-${id}`
+        );
+        const rowToDelete = this.$tableTbody.querySelector(
+          `tr[data-id="${id}"]`
+        );
+        rowToDelete?.remove();
+        if ($deleteButton) {
+          toggleGeneralState({
+            addTaskFormBtn: this.$addTaskFormBtn,
+            pressedBtn: $deleteButton,
+            tableElement: this.$tableTbody,
+            isFinished: true,
+          });
+          showSuccessToast('The task has been deleted successfully!');
+        }
+      })
+      .catch((error) => {
+        showErrorToast(error);
+      });
+  }
+
+  handleStartWorkingOnTask(taskId) {
+    const $taskRow = this.$tableTbody.querySelector(`#task-title-${taskId}`);
+    this.currentTask = $taskRow.innerHTML;
+    this.createNewTimer('pomodoro');
+  }
+
+  handleCompleteTask(taskId) {
+    getTask(taskId)
+      .then((taskToComplete) => {
+        completeTask(taskToComplete).then((completedTask) => {
+          const { id } = completedTask;
+          const $completeButton = this.$tableTbody.querySelector(
+            `#complete-task-btn-${id}`
+          );
+          const $taskRow = getTaskRow(this.$tableTbody, id);
+          crossOutTask($taskRow);
+          if ($completeButton) {
+            toggleGeneralState({
+              addTaskFormBtn: this.$addTaskFormBtn,
+              pressedBtn: $completeButton,
+              tableElement: this.$tableTbody,
+              isFinished: true,
+            });
+            showSuccessToast('The task has been completed successfully!');
           }
-        }, 1000);
+        });
+      })
+      .catch((error) => {
+        showErrorToast(error);
+      });
+  }
+
+  getNextTimerType() {
+    const currentTimerCycle = getTimerCycle();
+    if (this.timerType === 'pomodoro' && currentTimerCycle === 4) {
+      return 'longBreak';
+    } else if (this.timerType === 'pomodoro' && currentTimerCycle !== 4) {
+      return 'shortBreak';
+    } else {
+      return 'pomodoro';
+    }
+  }
+
+  getTimerMinute() {
+    switch (this.timerType) {
+      case 'pomodoro':
+        return POMODORO_WORK_TIME;
+      case 'shortBreak':
+        return POMODORO_SHORT_BREAK_TIME;
+      case 'longBreak':
+        return POMODORO_LONG_BREAK_TIME;
+    }
+  }
+
+  getTimerText() {
+    switch (this.timerType) {
+      case 'pomodoro':
+        return `👨‍💻 You are working on: ${this.currentTask}`;
+      case 'shortBreak':
+        return '😴 Short break: ';
+      case 'longBreak':
+        return '😴 Long break: ';
+    }
+  }
+
+  handleTimerEnd() {
+    if (this.timerType === 'longBreak') {
+      resetTimerCycle();
+    }
+    const nextTimerType = this.getNextTimerType();
+    this.createNewTimer(nextTimerType);
+  }
+
+  initializeTimer(deadline) {
+    this.currentInterval = setInterval(() => {
+      const remainingTime = getRemainingDate(deadline);
+      const { total, minutes, seconds } = remainingTime;
+      if (this.currentRemaining) {
+        this.currentRemaining = total;
+      }
+      this.$timerEl.innerHTML = `${this.getTimerText()} ${minutes}:${seconds}`;
+      if (this.timerType === 'pomodoro') {
+        incrementTimerCycle();
+      }
+      if (total <= 0) {
+        this.handleTimerEnd();
       }
     }, 1000);
   }
 
-  setActiveTask() {
-    const allTasks = document.querySelectorAll('.task');
-    allTasks.forEach(($taskItem) => ($taskItem.style.background = '#fff'));
-    this.currentTask = this.data.find((task) => !task.completed);
-    const targetEl = document.querySelector(
-      `tr[data-taskId = 'task${this.currentTask.id}']`
-    );
-    targetEl.style.background = 'red';
+  createNewTimer(timerType) {
+    clearInterval(this.currentInterval);
+    this.timerType = timerType;
+    const minute = this.getTimerMinute();
+    const deadline = setMinutes(new Date(), minute);
+    this.initializeTimer(deadline);
   }
 
-  createNewTimer() {
-    const now = getNow();
-    const endDate = addMinutes(now, POMODORO_WORK);
-    this.initializeTimer(endDate);
-    this.setActiveTask();
+  continueWorking() {
+    const totalRemaining = new Date(
+      Date.parse(new Date()) + this.currentRemaining
+    );
+    this.initializeTimer(totalRemaining);
   }
 
   handleStart() {
-    this.$startButton.addEventListener('click', () => {
-      const now = getNow();
+    this.$startBtn.addEventListener('click', () => {
       if (this.currentRemaining) {
-        const remaining = new Date(now.getTime() + this.currentRemaining);
-        this.initializeTimer(remaining);
+        continueWorking();
       } else {
-        this.createNewTimer();
+        this.createNewTimer(this.timerType);
       }
     });
   }
 
   handlePause() {
-    this.$pauseButton.addEventListener('click', () => {
+    this.$pauseBtn.addEventListener('click', () => {
       clearInterval(this.currentInterval);
     });
   }
 
+  handleReset() {
+    this.$resetBtn.addEventListener('click', () => {
+      clearInterval(this.currentInterval);
+      const minute = this.getTimerMinute();
+      this.$timerEl.innerHTML = `${minute}:00`;
+    });
+  }
+
+  clearInputValue() {
+    this.$taskFormInput.value = '';
+  }
+
   init() {
-    this.fillTasksTable();
+    toggleDisabledState(this.$startBtn);
+    toggleDisabledState(this.$pauseBtn);
+    toggleDisabledState(this.$resetBtn);
+    this.fillTaskTable();
     this.handleAddTask();
     this.handleStart();
     this.handlePause();
+    this.handleReset();
   }
 }
 

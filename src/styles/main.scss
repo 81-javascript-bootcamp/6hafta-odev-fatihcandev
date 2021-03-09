@@ -1,0 +1,173 @@
+@import '~bootstrap/scss/bootstrap';
+
+$blue: #007bff;
+$success: #28a745;
+$error: #dc3545;
+$shadow: 0 2px 5px 1px rgb(64 60 67 / 16%);
+
+$spacing-y: 15px 0;
+
+.loading {
+  position: relative;
+
+  * {
+    display: none;
+  }
+
+  .spinning-wheel-container {
+    display: flex;
+
+    .wheel {
+      display: block;
+    }
+  }
+}
+
+.instructions {
+  padding: $spacing-y;
+
+  h3 {
+    text-align: center;
+  }
+
+  ol {
+    width: 40%;
+    margin: 0 auto;
+  }
+}
+
+.timer {
+  text-align: center;
+  padding: $spacing-y;
+  font-size: 50px;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: $spacing-y;
+
+  button {
+    display: flex;
+    align-items: center;
+  }
+}
+
+#task-form {
+  button {
+    min-width: 100px;
+    height: 38px;
+    position: relative;
+  }
+}
+
+#tasks-table-tbody {
+  button {
+    display: flex;
+    align-items: center;
+    min-width: 42px;
+    min-height: 38px;
+  }
+}
+
+.spinning-wheel-container {
+  display: none;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  .wheel {
+    width: 15px;
+    height: 15px;
+    margin: auto;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    animation: spin 0.4s linear infinite;
+  }
+
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+}
+
+body {
+  counter-reset: taskId;
+}
+
+.id-row::before {
+  counter-increment: taskId;
+  content: counter(taskId);
+}
+
+.custom-toast-wrapper {
+  display: flex;
+  justify-content: center;
+  position: fixed;
+  bottom: 16px;
+  left: 0;
+  right: 0;
+  animation: fade-in 0.5s ease-out 1 forwards;
+
+  @media (max-width: 767px) {
+    left: 16px;
+    right: 16px;
+
+    .custom-toast {
+      width: 100%;
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      bottom: 0;
+    }
+
+    to {
+      opacity: 1;
+      bottom: 16px;
+    }
+  }
+
+  &.fade-out {
+    animation: fade-out 0.3s ease-out 1 forwards;
+  }
+
+  @keyframes fade-out {
+    from {
+      opacity: 1;
+      bottom: 16px;
+    }
+
+    to {
+      opacity: 0;
+      bottom: 32px;
+    }
+  }
+
+  .custom-toast {
+    min-width: 25%;
+    padding: 16px;
+    border-radius: 6px;
+    color: white;
+    box-shadow: $shadow;
+
+    &.success {
+      background-color: $success;
+    }
+
+    &.error {
+      background-color: $error;
+    }
+  }
+}

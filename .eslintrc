@@ -3,8 +3,7 @@
   "extends": ["prettier"],
   "plugins": ["prettier"],
   "rules": {
-    "prefer-destructuring": ["error", {"object": true, "array": true}],
-    "no-var": ["error"],
-    "prettier/prettier": ["error"]
+    "prefer-destructuring": ["error"],
+    "prettier/prettier": ["error", { "singleQuote": true, "endOfLine": "auto" }]
   }
 }

@@ -1,10 +1,10 @@
-import { addMinutes, getNow } from '../src/helpers/date';
+import { getNow, setMinutes } from '../src/utils/date';
 
 test('30 minutes after 3.30 should be 4.00', () => {
   // set date the timestamp of 2021.03.01 03.30
   const date = new Date(1614601825000);
   const minutes = 30;
-  const result = addMinutes(date, 30);
+  const result = setMinutes(date, 30);
   // expect date the timestamp of 2021.03.01 04.00
   const resultTime = result.getTime();
   expect(resultTime).toBe(1614603625000);

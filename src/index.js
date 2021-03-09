@@ -1,13 +1,14 @@
-import 'bootstrap/dist/css/bootstrap.min.css';
-import './styles/main.css';
+import './styles/main.scss';
 import PomodoroApp from './app';
 
 let pomodoroApp = new PomodoroApp({
-  tableTbodySelector: '#table-tbody',
-  taskFormSelector: '#task-form',
-  startButtonSelector: '#start',
-  pauseButtonSelector: '#pause',
-  timerSelector: '#timer',
+  tableSelector: 'tasks-table',
+  tableTbodySelector: 'tasks-table-tbody',
+  taskFormSelector: 'task-form',
+  timerElSelector: 'timer',
+  startBtnSelector: 'start-btn',
+  pauseBtnSelector: 'pause-btn',
+  resetBtnSelector: 'reset-btn',
 });
 
 pomodoroApp.init();
